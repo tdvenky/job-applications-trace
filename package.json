@@ -1,0 +1,51 @@
+{
+  "name": "job-applications-trace",
+  "version": "0.1.0",
+  "description": "AI agent that reconstructs your job search activity from Gmail and Google Calendar",
+  "keywords": [
+    "job-search",
+    "job-applications",
+    "gmail",
+    "google-calendar",
+    "cli",
+    "ai-agent",
+    "anthropic",
+    "career"
+  ],
+  "author": "Venkatesh Thimma Dhinakaran",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tdvenky/job-applications-trace.git"
+  },
+  "homepage": "https://github.com/tdvenky/job-applications-trace#readme",
+  "bin": {
+    "job-applications-trace": "./dist/index.js"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "swc src -d dist --strip-leading-paths",
+    "dev": "swc src -d dist --strip-leading-paths -w",
+    "start": "node dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.0",
+    "ai": "^7.0.0",
+    "commander": "^12.0.0",
+    "googleapis": "^144.0.0",
+    "open": "^8.4.0",
+    "zod": "^3.0.0"
+  },
+  "devDependencies": {
+    "@swc/cli": "^0.5.0",
+    "@swc/core": "^1.0.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
