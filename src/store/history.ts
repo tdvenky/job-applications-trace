@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { HISTORY_DIR } from '../constants';
+import { ScanUsage } from '../agent/cost';
 
 // --- Types -------------------------------------------------------------------
 
@@ -15,6 +16,14 @@ export interface MonthData {
   scannedFrom: string;   // YYYY-MM-DD (first day of the month)
   scannedUntil: string;  // YYYY-MM-DD (date of the most recent scan for this month)
   events: TimelineEntry[];
+  /**
+   * Token usage and model for this month's scan. Optional because reports
+   * written before usage tracking existed will not have them.
+   * Recording these per month lets `history` total the cost of a multi-month
+   * scan without re-running anything.
+   */
+  usage?: ScanUsage;
+  model?: string;
 }
 
 export interface Report {
@@ -59,14 +68,16 @@ export function upsertMonthData(
   month: string,
   from: string,
   until: string,
-  events: TimelineEntry[]
+  events: TimelineEntry[],
+  usage?: ScanUsage,
+  model?: string
 ): Report {
   return {
     ...report,
     updatedAt: new Date().toISOString(),
     months: {
       ...report.months,
-      [month]: { scannedFrom: from, scannedUntil: until, events },
+      [month]: { scannedFrom: from, scannedUntil: until, events, usage, model },
     },
   };
 }

@@ -1,6 +1,8 @@
 import { resolveApiKey } from '../config';
-import { loadToken } from '../google/auth';
+import { loadToken, isTokenExpired } from '../google/auth';
 import { runExtraction } from '../agent/loop';
+import { ACTIVE_MODEL } from '../agent/model';
+import { printUsage } from '../agent/cost';
 import {
   loadReport,
   saveReport,
@@ -149,18 +151,77 @@ export async function runScan(options: ScanOptions): Promise<void> {
     process.exit(1);
   }
 
+  // A present-but-expired token would otherwise pass this check and then fail
+  // on every Google API call, which reads as an empty inbox rather than an
+  // auth problem. Fail here instead, before spending anything on the model.
+  if (isTokenExpired(token)) {
+    console.error(
+      'Your Google access token has expired. Run `job-applications-trace auth` to sign in again.'
+    );
+    console.error(
+      'Access tokens last about an hour; re-authenticating is expected before each session.'
+    );
+    process.exit(1);
+  }
+
   let report = (await loadReport()) ?? createReport();
   const apiKey = await resolveApiKey();
 
   console.log(`\nScanning ${options.month} (${from} to ${until})...`);
+  console.log(`Model: ${ACTIVE_MODEL}`);
   console.log('Agent search log:');
 
-  const events = await runExtraction({ month: options.month, from, until, apiKey, token });
+  const { events, usage, toolErrors } = await runExtraction({
+    month: options.month,
+    from,
+    until,
+    apiKey,
+    token,
+  });
 
-  report = upsertMonthData(report, options.month, from, until, events);
+  // A run where every search failed produces zero events and would otherwise be
+  // saved over whatever was already recorded for this month. Report the failure
+  // and leave existing data alone.
+  if (toolErrors.length > 0 && events.length === 0) {
+    console.error(`\nScan failed: every search errored (${toolErrors.length} failure(s)).`);
+
+    // Show each distinct error once; a blanket auth failure repeats identically.
+    const seen = new Set<string>();
+    for (const failure of toolErrors) {
+      const key = `${failure.tool}: ${failure.message}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      console.error(`  ${key}`);
+    }
+
+    if (toolErrors.some((f) => /invalid credentials|401|unauthor/i.test(f.message))) {
+      console.error('\nThis looks like an expired or revoked Google token.');
+      console.error('Run `job-applications-trace auth` and try again.');
+    }
+
+    console.error('\nNothing was saved. Existing results for this month are unchanged.');
+    printUsage(usage, ACTIVE_MODEL);
+    process.exit(1);
+  }
+
+  report = upsertMonthData(report, options.month, from, until, events, usage, ACTIVE_MODEL);
   await saveReport(report);
 
-  console.log(`\nFound ${events.length} event(s).\n`);
+  console.log(`\nFound ${events.length} event(s).`);
+
+  // Partial failures still save, but the result is incomplete and saying so
+  // matters more than a clean-looking timeline.
+  if (toolErrors.length > 0) {
+    console.warn(
+      `\nWarning: ${toolErrors.length} search(es) failed. These results may be incomplete.`
+    );
+    for (const failure of toolErrors) {
+      console.warn(`  ${failure.tool}: ${failure.message}`);
+    }
+  }
+
+  printUsage(usage, ACTIVE_MODEL);
+  console.log('');
 
   const allEvents = getAllEvents(report);
 

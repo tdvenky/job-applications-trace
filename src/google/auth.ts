@@ -67,3 +67,22 @@ export async function loadToken(): Promise<Credentials | null> {
     return null;
   }
 }
+
+/**
+ * True if the saved token has passed (or is about to pass) its expiry.
+ *
+ * This tool requests online access, so there is no refresh token and the access
+ * token lasts about an hour. Without this check an expired token still loads
+ * fine and every Google API call then fails with 401 mid-scan, which is a much
+ * more confusing failure than being told to re-authenticate up front.
+ *
+ * A token with no expiry_date is treated as valid rather than assumed stale;
+ * the API call itself will reject it if it is not.
+ */
+export function isTokenExpired(token: Credentials): boolean {
+  if (!token.expiry_date) return false;
+
+  // 60s of margin so a token cannot expire between this check and the API call.
+  const SAFETY_MARGIN_MS = 60_000;
+  return Date.now() >= token.expiry_date - SAFETY_MARGIN_MS;
+}

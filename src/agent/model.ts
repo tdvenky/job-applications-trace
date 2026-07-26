@@ -4,10 +4,19 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 type Provider = 'anthropic';
 
 // Default model per provider. When adding a new provider, add its default here.
+// There is deliberately no user-facing --model flag: users get one chosen
+// default rather than a decision to make.
 const DEFAULT_MODELS: Record<Provider, string> = {
   anthropic: 'claude-sonnet-4-6',
   // openai: 'gpt-4o',
 };
+
+/**
+ * The model used for scans. Exported so each scan can record which model
+ * produced it: token costs differ per model, so `history` needs this to know
+ * whether months can be totalled into a single cost estimate.
+ */
+export const ACTIVE_MODEL = DEFAULT_MODELS.anthropic;
 
 interface ModelConfig {
   provider?: Provider;
