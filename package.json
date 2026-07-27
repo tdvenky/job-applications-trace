@@ -1,6 +1,6 @@
 {
   "name": "job-applications-trace",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AI agent that reconstructs your job search activity from Gmail and Google Calendar",
   "keywords": [
     "job-search",
