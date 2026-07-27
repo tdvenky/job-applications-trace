@@ -33,6 +33,24 @@ const MAX_EXTRACTION_STEPS = 20;
  */
 const CACHE_CONTROL = { type: 'ephemeral', ttl: '5m' } as const;
 
+/**
+ * Reasoning effort.
+ *
+ * `high` is Anthropic's current default, so setting it changes nothing today.
+ * It is pinned because effort governs how many tool calls the model makes, and
+ * this tool's accuracy depends directly on the model running enough follow-up
+ * searches. If the default ever shifts, search depth and cost would move with
+ * it, with no local change to explain the difference.
+ *
+ * Lowering this is not a cost optimization worth making: a cheaper scan that
+ * searches less finds fewer applications, which defeats the point.
+ *
+ * Note that the SDK does not validate this against the model. An unsupported
+ * value (`xhigh` is not available on Sonnet 4.6) is passed through without a
+ * warning and fails at the API instead.
+ */
+const EFFORT = 'high' as const;
+
 // --- Extraction --------------------------------------------------------------
 
 interface ExtractionInput {
@@ -104,7 +122,7 @@ export async function runExtraction(input: ExtractionInput): Promise<ExtractionR
       }),
     },
     providerOptions: {
-      anthropic: { cacheControl: CACHE_CONTROL },
+      anthropic: { cacheControl: CACHE_CONTROL, effort: EFFORT },
     },
     stopWhen: isStepCount(MAX_EXTRACTION_STEPS),
     onStepEnd({ stepNumber, toolCalls }) {
