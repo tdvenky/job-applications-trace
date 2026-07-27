@@ -17,8 +17,15 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22' # trusted publishing needs npm CLI >=11.5.1, which needs Node >=22.14
+          # Trusted publishing needs npm CLI >=11.5.1, which ships with Node 24.
+          # Node 22 bundles npm 10, which cannot perform the OIDC handshake: npm
+          # silently publishes anonymously and the registry rejects it with a
+          # misleading "404 Not Found - PUT" rather than an auth error.
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+
+      # Printed so a future auth failure can be diagnosed from the log alone.
+      - run: node --version && npm --version
 
       - run: npm ci
 
