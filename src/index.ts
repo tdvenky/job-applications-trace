@@ -9,7 +9,7 @@ const program = new Command();
 program
   .name('job-applications-trace')
   .description('AI agent that reconstructs your job search from Gmail and Calendar')
-  .version('0.1.0');
+  .version('0.2.0');
 
 program
   .command('auth')
